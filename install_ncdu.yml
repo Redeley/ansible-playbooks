@@ -1,10 +1,11 @@
 ---
 
 - name: Instalar o pacote ncdu
-  hosts: <teste_ping>
+  hosts: all
   become: yes
   tasks:
-    - name: Instalar o pacote ncdu
+    - name: Instalar ncdu
       apt:
         name: ncdu
         state: present
+        update_cache: yes
