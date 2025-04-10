@@ -1,7 +1,7 @@
 ---
 
 - name: Instalar o pacote ncdu
-  hosts: <10.60.0.33>
+  hosts: <teste_ping>
   become: yes
   tasks:
     - name: Instalar o pacote ncdu
