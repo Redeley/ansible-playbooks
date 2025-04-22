@@ -1,0 +1,11 @@
+---
+
+- name: Instalar o pacote nodejs
+  hosts: all
+  become: yes
+  tasks:
+    - name: Instalar nodejs
+      apt:
+        name: nodejs
+        state: present
+        update_cache: yes
