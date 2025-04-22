@@ -1,0 +1,11 @@
+---
+
+- name: Instalar o pacote apache2
+  hosts: all
+  become: yes
+  tasks:
+    - name: Instalar apache
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
