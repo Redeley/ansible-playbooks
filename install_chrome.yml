@@ -1,0 +1,8 @@
+---
+- hosts: windows_servers
+  become: true
+  tasks:
+    - name: Install Chrome
+      chocolatey:
+        name: chrome
+        state: present
