@@ -1,6 +1,6 @@
 ---
 - name: Instalar Mozilla Firefox no Windows
-  hosts: windows
+  hosts: all
   gather_facts: no
   tasks:
 
@@ -23,3 +23,4 @@
     - name: Mostrar resultado da instalação
       debug:
         var: firefox_installed.stdout_lines
+
