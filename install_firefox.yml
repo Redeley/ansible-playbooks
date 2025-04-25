@@ -2,6 +2,7 @@
 - name: Instalar Mozilla Firefox no Windows
   hosts: all
   gather_facts: no
+  become: false
   tasks:
 
     - name: Baixar o instalador do Firefox
