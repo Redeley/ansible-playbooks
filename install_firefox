@@ -1,0 +1,14 @@
+- name: Download e Instalação do Firefox
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Baixar o instalador do Firefox
+      windows_download:
+        url: "https://download.mozilla.org/?product=firefox-latest&os=win&lang=pt-BR"
+        dest: C:\downloads\firefox_installer.exe
+        mode: "0777"
+
+    - name: Instalar o Firefox
+      windows_exec:
+        command: C:\downloads\firefox_installer.exe
