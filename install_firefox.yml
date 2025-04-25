@@ -1,14 +1,25 @@
-- name: Download e Instalação do Firefox
-  hosts: all
-  gather_facts: false
-
+---
+- name: Instalar Mozilla Firefox no Windows
+  hosts: windows
+  gather_facts: no
   tasks:
-    - name: Baixar o instalador do Firefox
-      windows_download:
-        url: "https://download.mozilla.org/?product=firefox-latest&os=win&lang=pt-BR"
-        dest: C:\downloads\firefox_installer.exe
-        mode: "0777"
 
-    - name: Instalar o Firefox
-      windows_exec:
-        command: C:\downloads\firefox_installer.exe
+    - name: Baixar o instalador do Firefox
+      win_get_url:
+        url: https://download.mozilla.org/?product=firefox-latest&os=win64&lang=pt-BR
+        dest: C:\Windows\Temp\Firefox_installer.exe
+
+    - name: Instalar o Firefox de forma silenciosa
+      win_package:
+        path: C:\Windows\Temp\Firefox_installer.exe
+        arguments: /silent
+        product_id: Mozilla Firefox
+        state: present
+
+    - name: Verificar se o Firefox foi instalado
+      win_shell: 'Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" | Where-Object { $_.DisplayName -like "*Firefox*" }'
+      register: firefox_installed
+
+    - name: Mostrar resultado da instalação
+      debug:
+        var: firefox_installed.stdout_lines
