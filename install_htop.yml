@@ -1,0 +1,11 @@
+---
+
+- name: Instalar o pacote htop
+  hosts: all
+  become: yes
+  tasks:
+    - name: Instalar htop
+      apt:
+        name: htop
+        state: present
+        update_cache: yes
