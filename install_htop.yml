@@ -6,6 +6,11 @@
     - name: Remover EPEL errado (se estiver instalado)
       ansible.builtin.shell: "dnf remove -y epel-release || true"
       ignore_errors: yes
+      
+- name: Importar chave GPG do EPEL 8
+  rpm_key:
+    state: present
+    key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8
 
     - name: Baixar e instalar EPEL 8 diretamente do link oficial
       ansible.builtin.dnf:
