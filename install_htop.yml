@@ -7,12 +7,12 @@
       ansible.builtin.shell: "dnf remove -y epel-release || true"
       ignore_errors: yes
       
-- name: Importar chave GPG do EPEL 8
-  rpm_key:
-    state: present
-    key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8
+ - name: Importar chave GPG do EPEL 8
+      rpm_key:
+        state: present
+        key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8
 
-    - name: Baixar e instalar EPEL 8 diretamente do link oficial
+    - name: Instalar epel-release do EPEL 8
       ansible.builtin.dnf:
         name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
         state: present
