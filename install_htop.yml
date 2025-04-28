@@ -1,18 +1,27 @@
 ---
-- name: Instalar htop compatível com o sistema
+- name: Instalar htop no Oracle Linux 8.10
   hosts: all
   become: yes
   tasks:
-    - name: Habilitar repositório EPEL (caso necessário)
-      yum:
+    - name: Verificar se o EPEL está instalado
+      ansible.builtin.dnf:
         name: epel-release
         state: present
 
-    - name: Atualizar cache do dnf
-      dnf:
+    - name: Atualizar cache dos repositórios
+      ansible.builtin.dnf:
         update_cache: yes
 
     - name: Instalar htop
-      dnf:
+      ansible.builtin.dnf:
         name: htop
         state: present
+
+    - name: Verificar se o htop foi instalado com sucesso
+      ansible.builtin.command: which htop
+      register: htop_path
+      changed_when: false
+
+    - name: Exibir caminho do htop instalado
+      ansible.builtin.debug:
+        msg: "htop instalado em: {{ htop_path.stdout }}"
