@@ -1,11 +1,11 @@
 ---
-
-- name: Instalar o pacote htop
+- name: Instalar htop em máquinas Linux
   hosts: all
   become: yes
   tasks:
-    - name: Instalar htop
-      apt:
+    - name: Garantir que o htop esteja instalado
+      ansible.builtin.package:
         name: htop
         state: present
-        update_cache: yes
+
+
