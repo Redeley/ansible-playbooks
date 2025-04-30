@@ -1,6 +1,6 @@
 ---
 - name: Executar klmover em máquina Ubuntu
-  hosts: grupo_kaspersky
+  hosts: all
   become: yes
   tasks:
 
