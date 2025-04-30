@@ -1,0 +1,29 @@
+---
+- name: Instalar pacote .deb a partir de repositório Git
+  hosts: all
+  become: true
+  vars:
+    repo_url: "https://github.com/Redeley/ansible-playbooks.git"
+    local_clone_dir: "/tmp/ansible-playbooks"
+    deb_filename: "klnagent64_13.2.2-1263_amd64.deb"
+    remote_dest: "/tmp/klnagent64_13.2.2-1263_amd64.deb"
+
+  tasks:
+    - name: Clonar repositório contendo o .deb
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ local_clone_dir }}"
+        version: "Redeley-patch-1"
+        force: yes
+      delegate_to: localhost
+
+    - name: Copiar .deb para o servidor remoto
+      copy:
+        src: "{{ local_clone_dir }}/{{ deb_filename }}"
+        dest: "{{ remote_dest }}"
+        mode: '0644'
+
+    - name: Instalar pacote .deb
+      apt:
+        deb: "{{ remote_dest }}"
+        state: present
