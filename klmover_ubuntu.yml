@@ -8,17 +8,17 @@
   tasks:
     - name: Verificar se o klmover está presente no diretório atual ou conhecido
       stat:
-        path: "/opt/kaspersky/klmover"
+        path: "/opt/kaspersky/klnagent64/bin"
       register: klmover_stat
 
     - name: Tornar klmover executável (caso não esteja)
       file:
-        path: "/opt/kaspersky/klmover"
+        path: "/opt/kaspersky/klnagent64/bin/klmover"
         mode: '0755'
       when: klmover_stat.stat.exists
 
     - name: Executar klmover para reconfigurar o apontamento
-      command: "/opt/kaspersky/klmover -address {{ ip_do_servidor_antivirus }}"
+      command: "/opt/kaspersky/klnagent64/bin/klmover -address {{ ip_do_servidor_antivirus }}"
       register: klmover_output
       when: klmover_stat.stat.exists
 
@@ -29,5 +29,5 @@
 
     - name: Informar que o klmover não foi encontrado
       debug:
-        msg: "O utilitário klmover não foi encontrado em /opt/kaspersky/"
+        msg: "O utilitário klmover não foi encontrado em /opt/kaspersky/klnagent64/bin/"
       when: not klmover_stat.stat.exists
