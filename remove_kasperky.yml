@@ -1,0 +1,36 @@
+---
+- name: Remover Kaspersky (klnagent64 e kesl)
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Remover pacotes klnagent64 e kesl
+      apt:
+        name:
+          - klnagent64
+          - kesl
+        state: absent
+        purge: yes
+        force: yes
+        autoremove: yes
+        update_cache: yes
+
+    - name: Remover diretório /opt/kaspersky
+      file:
+        path: /opt/kaspersky
+        state: absent
+
+    - name: Remover diretório /var/opt/kaspersky
+      file:
+        path: /var/opt/kaspersky
+        state: absent
+
+    - name: Remover diretório /etc/opt/kaspersky
+      file:
+        path: /etc/opt/kaspersky
+        state: absent
+
+    - name: Remover diretório /var/log/kaspersky
+      file:
+        path: /var/log/kaspersky
+        state: absent
