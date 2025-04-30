@@ -6,28 +6,7 @@
     ip_do_servidor_antivirus: "172.40.0.3"
 
   tasks:
-    - name: Verificar se o klmover está presente no diretório atual ou conhecido
-      stat:
-        path: "/opt/kaspersky/klnagent64/bin"
-      register: klmover_stat
-
-    - name: Tornar klmover executável (caso não esteja)
-      file:
-        path: "/opt/kaspersky/klnagent64/bin/klmover"
-        mode: '0755'
-      when: klmover_stat.stat.exists
-
-    - name: Executar klmover para reconfigurar o apontamento
-      command: "/opt/kaspersky/klnagent64/bin/klmover -address {{ ip_do_servidor_antivirus }}"
-      register: klmover_output
-      when: klmover_stat.stat.exists
-
-    - name: Exibir saída do klmover
-      debug:
-        var: klmover_output.stdout_lines
-      when: klmover_output is defined
-
-    - name: Informar que o klmover não foi encontrado
-      debug:
-        msg: "O utilitário klmover não foi encontrado em /opt/kaspersky/klnagent64/bin/"
-      when: not klmover_stat.stat.exists
+    - name: Executar comando klmover com endereço
+      ansible.builtin.command: ./klmover -address 172.40.0.3
+      args:
+        chdir: /opt/kaspersky/klnagent64/bin/
