@@ -1,38 +1,33 @@
 ---
-- name: Atualizar apontamento do Kaspersky Network Agent no Ubuntu
+- name: Atualizar apontamento do Kaspersky Network Agent via klmover no Linux
   hosts: all
   become: yes
   vars:
     ip_do_servidor_antivirus: "172.40.0.3"
 
   tasks:
-    - name: Verificar se o arquivo de configuração do Kaspersky existe
+    - name: Verificar se o klmover está presente no diretório atual ou conhecido
       stat:
-        path: "/etc/kaspersky/klnagent.conf"
-      register: kasp_config
+        path: "/opt/kaspersky/klmover"
+      register: klmover_stat
 
-    - name: Fazer backup do arquivo de configuração atual
-      copy:
-        src: "/etc/kaspersky/klnagent.conf"
-        dest: "/etc/kaspersky/klnagent.conf.bak"
-        remote_src: yes
-      when: kasp_config.stat.exists
+    - name: Tornar klmover executável (caso não esteja)
+      file:
+        path: "/opt/kaspersky/klmover"
+        mode: '0755'
+      when: klmover_stat.stat.exists
 
-    - name: Atualizar endereço do servidor no arquivo de configuração
-      lineinfile:
-        path: "/etc/kaspersky/klnagent.conf"
-        regexp: '^Server='
-        line: "Server={{ ip_do_servidor_antivirus }}"
-        backrefs: yes
-      when: kasp_config.stat.exists
+    - name: Executar klmover para reconfigurar o apontamento
+      command: "/opt/kaspersky/klmover -address {{ ip_do_servidor_antivirus }}"
+      register: klmover_output
+      when: klmover_stat.stat.exists
 
-    - name: Reiniciar serviço do Kaspersky Network Agent
-      service:
-        name: klnagent
-        state: restarted
-      when: kasp_config.stat.exists
-
-    - name: Informar que o Kaspersky Network Agent não está instalado
+    - name: Exibir saída do klmover
       debug:
-        msg: "O arquivo de configuração do Kaspersky não foi encontrado. O agente pode não estar instalado."
-      when: not kasp_config.stat.exists
+        var: klmover_output.stdout_lines
+      when: klmover_output is defined
+
+    - name: Informar que o klmover não foi encontrado
+      debug:
+        msg: "O utilitário klmover não foi encontrado em /opt/kaspersky/"
+      when: not klmover_stat.stat.exists
