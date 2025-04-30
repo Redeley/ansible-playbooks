@@ -4,7 +4,7 @@
   become: yes
   vars:
     repositorio_git: "https://github.com/Redeley/ansible-playbooks.git"
-    destino_clone: "/root/"
+    destino_clone: "/opt/ansible-playbook"
     arquivo_para_instalar: "klnagent64_13.2.2-1263_amd64.deb"
 
   tasks:
