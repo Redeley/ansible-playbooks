@@ -23,7 +23,15 @@
     
     - name: Executar script postinstall.pl com entradas simuladas
       shell: |
-        echo -e "y\n172.40.0.3\n14000\n13000\ny\n2" | perl /opt/kaspersky/klnagent64/lib/bin/setup/postinstall.pl
+        perl /opt/kaspersky/klnagent64/lib/bin/setup/postinstall.pl <<EOF
+        y
+        172.40.0.3
+        14000
+        13000
+        y
+        2
+        q
+        EOF
 
     - name: Executar klmover com endereço especificado
       shell: |
