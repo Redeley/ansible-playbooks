@@ -3,42 +3,7 @@
   hosts: all
   become: yes
   tasks:
-
-    - name: Verificar se o diretório existe
-      ansible.builtin.stat:
-        path: /opt/kaspersky/klnagent64/bin/
-      register: stat_diretorio
-
-    - name: Falhar se o diretório não existir
-      ansible.builtin.fail:
-        msg: "O diretório /opt/kaspersky/klnagent64/bin/ não existe."
-      when: not stat_diretorio.stat.exists
-
-    - name: Verificar se o binário klmover existe
-      ansible.builtin.stat:
-        path: /opt/kaspersky/klnagent64/bin/klmover
-      register: stat_binario
-
-    - name: Falhar se o binário klmover não existir
-      ansible.builtin.fail:
-        msg: "O binário klmover não foi encontrado em /opt/kaspersky/klnagent64/bin/."
-      when: not stat_binario.stat.exists or not stat_binario.stat.mode | int(base=8) is search("^[1-7]..7")
-
     - name: Executar comando klmover com endereço específico
       ansible.builtin.command: ./klmover -address 172.40.0.3
       args:
         chdir: /opt/kaspersky/klnagent64/bin/
-      register: resultado_klmover
-      failed_when: resultado_klmover.rc != 0
-
-    - name: Exibir saída padrão do comando
-      debug:
-        var: resultado_klmover.stdout
-
-    - name: Exibir erro padrão do comando
-      debug:
-        var: resultado_klmover.stderr
-
-    - name: Exibir código de retorno do comando
-      debug:
-        var: resultado_klmover.rc
