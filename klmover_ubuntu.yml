@@ -1,0 +1,38 @@
+---
+- name: Atualizar apontamento do Kaspersky Network Agent no Ubuntu
+  hosts: all
+  become: yes
+  vars:
+    ip_do_servidor_antivirus: "172.40.0.3"
+
+  tasks:
+    - name: Verificar se o arquivo de configuração do Kaspersky existe
+      stat:
+        path: "/etc/kaspersky/klnagent.conf"
+      register: kasp_config
+
+    - name: Fazer backup do arquivo de configuração atual
+      copy:
+        src: "/etc/kaspersky/klnagent.conf"
+        dest: "/etc/kaspersky/klnagent.conf.bak"
+        remote_src: yes
+      when: kasp_config.stat.exists
+
+    - name: Atualizar endereço do servidor no arquivo de configuração
+      lineinfile:
+        path: "/etc/kaspersky/klnagent.conf"
+        regexp: '^Server='
+        line: "Server={{ ip_do_servidor_antivirus }}"
+        backrefs: yes
+      when: kasp_config.stat.exists
+
+    - name: Reiniciar serviço do Kaspersky Network Agent
+      service:
+        name: klnagent
+        state: restarted
+      when: kasp_config.stat.exists
+
+    - name: Informar que o Kaspersky Network Agent não está instalado
+      debug:
+        msg: "O arquivo de configuração do Kaspersky não foi encontrado. O agente pode não estar instalado."
+      when: not kasp_config.stat.exists
