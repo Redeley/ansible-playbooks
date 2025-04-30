@@ -34,3 +34,8 @@
       file:
         path: /var/log/kaspersky
         state: absent
+        
+    - name: Remover diretório /tmp/ansible-playbooks
+      file:
+        path: /tmp/ansible-playbooks
+        state: absent
