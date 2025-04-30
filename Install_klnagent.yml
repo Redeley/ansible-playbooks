@@ -1,31 +1,35 @@
 ---
-- name: Instalação de arquivo a partir de projeto no GitHub
-  hosts: all
+- name: Instalar agente KLN a partir de repositório Git
+  hosts: servidores
   become: yes
   vars:
     repositorio_git: "https://github.com/Redeley/ansible-playbooks.git"
-    destino_clone: "/opt/ansible-playbook"
-    arquivo_para_instalar: "klnagent64_13.2.2-1263_amd64.deb"
+    destino_clone: "/opt/ansible-playbooks"
+    pacote_deb: "klnagent64_13.2.2-1263_amd64.deb"
 
   tasks:
-    - name: Instalar dependência do Git
+    - name: Instalar o Git (caso não tenha)
       apt:
         name: git
         state: present
         update_cache: yes
 
-    - name: Clonar o repositório do GitHub
+    - name: Criar diretório de destino
+      file:
+        path: "{{ destino_clone }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Clonar repositório do GitHub
       git:
         repo: "{{ repositorio_git }}"
         dest: "{{ destino_clone }}"
-        version: Redeley-patch-1
+        version: main
         force: yes
 
-    - name: Tornar o arquivo executável (se necessário)
-      file:
-        path: "{{ destino_clone }}/{{ arquivo_para_instalar }}"
-        mode: '0755'
-        state: file
-
-    - name: Executar o script ou instalar o arquivo
-      command: "{{ destino_clone }}/{{ arquivo_para_instalar }}"
+    - name: Instalar o pacote .deb com apt
+      apt:
+        deb: "{{ destino_clone }}/{{ pacote_deb }}"
+        state: present
