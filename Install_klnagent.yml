@@ -1,6 +1,6 @@
 ---
 - name: Instalar agente KLN a partir de repositório Git
-  hosts: servidores
+  hosts: all
   become: yes
   vars:
     repositorio_git: "https://github.com/Redeley/ansible-playbooks.git"
