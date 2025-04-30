@@ -1,6 +1,6 @@
 ---
 - name: Instalação de arquivo a partir de projeto no GitHub
-  hosts: servidores
+  hosts: all
   become: yes
   vars:
     repositorio_git: "https://github.com/Redeley/ansible-playbooks.git"
