@@ -6,7 +6,7 @@
     repo_url: "https://github.com/Redeley/ansible-playbooks.git"
     local_clone_dir: "/tmp/ansible-playbooks"
     deb_filename: "klnagent64_13.2.2-1263_amd64.deb"
-    remote_dest: "/tmp/ansible-playbooks/klnagent64_13.2.2-1263_amd64.deb"
+    remote_dest: "/tmp/klnagent64_13.2.2-1263_amd64.deb"
 
   tasks:
     - name: Clonar repositório contendo o .deb
@@ -15,13 +15,21 @@
         dest: "{{ local_clone_dir }}"
         version: "Redeley-patch-1"
         force: yes
+      delegate_to: localhost
+      become: false
+
+    - name: Copiar .deb para o servidor remoto
+      copy:
+        src: "{{ local_clone_dir }}/{{ deb_filename }}"
+        dest: "{{ remote_dest }}"
+        mode: '0644'
 
     - name: Instalar pacote .deb
       apt:
         deb: "{{ remote_dest }}"
         state: present
-    
-    - name: Executar script postinstall.pl com entradas simuladas
+
+    - name: Executar script postinstall.pl com entradas simuladas via heredoc
       shell: |
         perl /opt/kaspersky/klnagent64/lib/bin/setup/postinstall.pl <<EOF
         y
@@ -32,6 +40,8 @@
         2
         q
         EOF
+      args:
+        executable: /bin/bash
 
     - name: Executar klmover com endereço especificado
       shell: |
