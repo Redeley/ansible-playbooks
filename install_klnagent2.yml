@@ -7,8 +7,15 @@
     local_clone_dir: "/tmp/ansible-playbooks"
     deb_filename: "klnagent64_13.2.2-1263_amd64.deb"
     remote_dest: "/tmp/klnagent64_13.2.2-1263_amd64.deb"
-
+ 
   tasks:
+    - name: Remover diretório local se já existir
+      file:
+        path: "{{ local_clone_dir }}"
+        state: absent
+      delegate_to: localhost
+      become: false
+ 
     - name: Clonar repositório contendo o .deb
       git:
         repo: "{{ repo_url }}"
@@ -17,13 +24,13 @@
         force: yes
       delegate_to: localhost
       become: false
-
+ 
     - name: Copiar .deb para o servidor remoto
       copy:
         src: "{{ local_clone_dir }}/{{ deb_filename }}"
         dest: "{{ remote_dest }}"
         mode: '0644'
-
+ 
     - name: Instalar pacote .deb
       apt:
         deb: "{{ remote_dest }}"
