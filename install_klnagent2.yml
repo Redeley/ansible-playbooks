@@ -28,35 +28,3 @@
       apt:
         deb: "{{ remote_dest }}"
         state: present
-
-    - name: Executar script postinstall.pl com entradas simuladas via heredoc
-      shell: |
-        perl /opt/kaspersky/klnagent64/lib/bin/setup/postinstall.pl <<EOF
-        y
-        172.40.0.3
-        14000
-        13000
-        y
-        2
-        q
-        EOF
-      args:
-        executable: /bin/bash
-
-    - name: Executar klmover com endereço especificado
-      shell: |
-        cd /opt/kaspersky/klnagent64/bin && ./klmover -address 172.40.0.3
-
-    - name: Reiniciar o serviço klnagent64
-      systemd:
-        name: klnagent64
-        state: restarted
-        enabled: true
-
-    - name: Verificar status do serviço klnagent64
-      shell: systemctl status klnagent64 --no-pager
-      register: status_output
-
-    - name: Exibir status do serviço klnagent64
-      debug:
-        var: status_output.stdout_lines
