@@ -1,0 +1,29 @@
+---
+- name: Playbook para remover Kaspersky
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Remover pacotes klnagent e kesl
+      apt:
+        name:
+          - klnagent
+          - kesl
+        state: absent
+        purge: yes
+        force: yes
+        autoremove: yes
+        update_cache: yes
+
+    - name: Remover diretório /opt/kaspersky
+      file:
+        path: /opt/kaspersky
+        state: absent
+
+    - name: Remover diretórios kaspersky restantes
+      shell: |
+        sudo rm -rf /opt/kaspersky \
+                    /etc/opt/kaspersky \
+                    /var/log/kaspersky
+      args:
+        warn: false
