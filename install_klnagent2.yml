@@ -2,6 +2,8 @@
 - name: Instalar pacote .deb a partir de repositório Git
   hosts: all
   become: true
+  gather_facts: yes
+
   vars:
     repo_url: "https://github.com/Redeley/ansible-playbooks.git"
     local_clone_base: "/tmp/ansible-playbooks"
@@ -9,16 +11,16 @@
     remote_dest: "/tmp/klnagent64_13.2.2-1263_amd64.deb"
 
   tasks:
-    - name: Definir tempo atual (fato ansible_date_time)
-      setup:
-        filter: ansible_date_time
+    - name: Criar diretório de clone único com hash por host + data
+      set_fact:
+        local_clone_dir: "{{ local_clone_base }}_{{ ansible_date_time.epoch }}_{{ inventory_hostname }}"
       delegate_to: localhost
       become: false
-      run_once: true
 
-    - name: Definir variável com diretório único de clone
-      set_fact:
-        local_clone_dir: "{{ local_clone_base }}_{{ ansible_date_time.epoch }}"
+    - name: Remover diretório se já existir
+      file:
+        path: "{{ local_clone_dir }}"
+        state: absent
       delegate_to: localhost
       become: false
 
@@ -41,3 +43,10 @@
       apt:
         deb: "{{ remote_dest }}"
         state: present
+
+    - name: Remover diretório local após uso (limpeza)
+      file:
+        path: "{{ local_clone_dir }}"
+        state: absent
+      delegate_to: localhost
+      become: false
