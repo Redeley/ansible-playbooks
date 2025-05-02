@@ -1,0 +1,30 @@
+---
+- name: Executar postinstall.sh nas máquinas do inventário
+  hosts: all
+  become: true
+  vars:
+    repo_url: "https://github.com/Redeley/ansible-playbooks/tree/Redeley-patch-1"
+    repo_dest: "/tmp/postinstall_repo"
+
+  tasks:
+    - name: Garantir que o Git esteja instalado
+      package:
+        name: git
+        state: present
+
+    - name: Clonar o repositório com o script
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+        force: yes
+
+    - name: Copiar postinstall.sh para o destino
+      copy:
+        src: "{{ repo_dest }}/postinstall.sh"
+        dest: "/tmp/postinstall.sh"
+        mode: '0755'
+
+    - name: Executar o script postinstall.sh
+      command: ./postinstall.sh
+      args:
+        chdir: /tmp
