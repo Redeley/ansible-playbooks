@@ -6,6 +6,8 @@
     repo_url: "https://github.com/Redeley/ansible-playbooks.git"
     repo_branch: "Redeley-patch-1"
     repo_dest: "/tmp/postinstall_repo"
+    script_src: "/tmp/postinstall_repo/postinstall.sh"
+    script_dest: "/tmp/postinstall.sh"
 
   tasks:
     - name: Garantir que o Git esteja instalado
@@ -20,13 +22,14 @@
         version: "{{ repo_branch }}"
         force: yes
 
-    - name: Copiar postinstall.sh para o destino em /tmp
+    - name: Copiar o script postinstall.sh para /tmp/
       copy:
-        src: "{{ repo_dest }}/postinstall.sh"
-        dest: "/tmp/postinstall.sh"
+        remote_src: true
+        src: "{{ script_src }}"
+        dest: "{{ script_dest }}"
         mode: '0755'
 
-    - name: Executar o script postinstall.sh
+    - name: Executar o script postinstall.sh em /tmp
       command: ./postinstall.sh
       args:
-        chdir: /tmp
+        chdir: "/tmp"
