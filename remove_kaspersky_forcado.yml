@@ -2,18 +2,81 @@
 - name: Playbook para remover Kaspersky
   hosts: all
   become: yes
+  gather_facts: yes
 
   tasks:
-    - name: Remover pacotes klnagent e kesl
+    - name: Esperar até que o lock do APT seja liberado (apenas Debian)
+      shell: |
+        while fuser /var/lib/dpkg/lock >/dev/null 2>&1 || \
+              fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || \
+              fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+          sleep 5
+        done
+      args:
+        warn: false
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Verificar se klnagent está instalado no Debian
+      shell: dpkg -l | grep '^ii' | grep -w klnagent
+      register: klnagent_check_deb
+      ignore_errors: true
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Verificar se kesl está instalado no Debian
+      shell: dpkg -l | grep '^ii' | grep -w kesl
+      register: kesl_check_deb
+      ignore_errors: true
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Verificar se klnagent está instalado no Red Hat
+      shell: rpm -q klnagent
+      register: klnagent_check_rh
+      ignore_errors: true
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Verificar se kesl está instalado no Red Hat
+      shell: rpm -q kesl
+      register: kesl_check_rh
+      ignore_errors: true
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Remover klnagent no Debian
       apt:
-        name:
-          - klnagent
-          - kesl
+        name: klnagent
         state: absent
         purge: yes
-        force: yes
         autoremove: yes
         update_cache: yes
+      when:
+        - ansible_facts['os_family'] == 'Debian'
+        - klnagent_check_deb.rc == 0
+
+    - name: Remover kesl no Debian
+      apt:
+        name: kesl
+        state: absent
+        purge: yes
+        autoremove: yes
+        update_cache: yes
+      when:
+        - ansible_facts['os_family'] == 'Debian'
+        - kesl_check_deb.rc == 0
+
+    - name: Remover klnagent no Red Hat
+      yum:
+        name: klnagent
+        state: absent
+      when:
+        - ansible_facts['os_family'] == 'RedHat'
+        - klnagent_check_rh.rc == 0
+
+    - name: Remover kesl no Red Hat
+      yum:
+        name: kesl
+        state: absent
+      when:
+        - ansible_facts['os_family'] == 'RedHat'
+        - kesl_check_rh.rc == 0
 
     - name: Remover diretório /opt/kaspersky
       file:
@@ -22,8 +85,7 @@
 
     - name: Remover diretórios kaspersky restantes
       shell: |
-        sudo rm -rf /opt/kaspersky \
-                    /etc/opt/kaspersky \
-                    /var/log/kaspersky
+        rm -rf /opt/kaspersky /etc/opt/kaspersky /var/log/kaspersky
       args:
         warn: false
+
