@@ -1,5 +1,9 @@
 #!/bin/bash
 
+echo '================================Atualizando Kernel====================================='
+sudo apt update
+sudo apt install --install-recommends linux-generic-hwe-20.04
+
 echo '===============================Instalando Kaspersky===================================='
 SESSION_NAME="kaspersky"
 tmux new-session -d -s $SESSION_NAME # kaspersky
