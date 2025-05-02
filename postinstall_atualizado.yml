@@ -1,97 +1,101 @@
 ---
-- name: Instalar pacote .deb a partir de repositório Git
+- name: Instalar pacote .deb a partir de repositório Git e executar script de pós-instalação
   hosts: all
   become: true
   gather_facts: yes
 
   vars:
+    # Configurações do repositório
     repo_url: "https://github.com/Redeley/ansible-playbooks.git"
-    local_clone_base: "/tmp/ansible-playbooks"
+    repo_branch: "Redeley-patch-1"
+
+    # Arquivo .deb
     deb_filename: "klnagent64_13.2.2-1263_amd64.deb"
-    remote_dest: "/tmp/klnagent64_13.2.2-1263_amd64.deb"
+    local_clone_base: "/tmp/ansible-playbooks"
+    remote_deb_dest: "/tmp/{{ deb_filename }}"
+
+    # Script de pós-instalação
+    script_filename: "instala_postinstall.sh"
+    repo_remote_clone: "/tmp/postinstall_repo"
+    script_src_path: "{{ repo_remote_clone }}/{{ script_filename }}"
+    script_dest_path: "/tmp/{{ script_filename }}"
 
   tasks:
-    - name: Criar diretório de clone único com hash por host + data
+    - name: Criar diretório de clone único localmente (localhost)
       set_fact:
         local_clone_dir: "{{ local_clone_base }}_{{ ansible_date_time.epoch }}_{{ inventory_hostname }}"
       delegate_to: localhost
       become: false
 
-    - name: Remover diretório se já existir
+    - name: Garantir que o diretório local não exista antes de clonar
       file:
         path: "{{ local_clone_dir }}"
         state: absent
       delegate_to: localhost
       become: false
 
-    - name: Clonar repositório contendo o .deb
+    - name: Clonar repositório contendo o .deb no localhost
       git:
         repo: "{{ repo_url }}"
         dest: "{{ local_clone_dir }}"
-        version: "Redeley-patch-1"
+        version: "{{ repo_branch }}"
         force: yes
       delegate_to: localhost
       become: false
 
-    - name: Copiar .deb para o servidor remoto
+    - name: Copiar o arquivo .deb do localhost para o host remoto
       copy:
         src: "{{ local_clone_dir }}/{{ deb_filename }}"
-        dest: "{{ remote_dest }}"
+        dest: "{{ remote_deb_dest }}"
         mode: '0644'
+      delegate_to: localhost
+      become: false
 
-- name: Executar instala_postinstall.sh nas máquinas do inventário
-  hosts: all
-  become: true
-  gather_facts: no
+    - name: Instalar o pacote .deb no host remoto
+      apt:
+        deb: "{{ remote_deb_dest }}"
+        state: present
 
-  vars:
-    repo_url: "https://github.com/Redeley/ansible-playbooks.git"
-    repo_branch: "Redeley-patch-1"
-    repo_dest: "/tmp/postinstall_repo"
-    script_src: "/tmp/postinstall_repo/instala_postinstall.sh"
-    script_dest: "/tmp/instala_postinstall.sh"
-
-  tasks:
-    - name: Clonar o repositório com o script da branch correta
+    - name: Clonar o repositório no host remoto para executar o script
       git:
         repo: "{{ repo_url }}"
-        dest: "{{ repo_dest }}"
+        dest: "{{ repo_remote_clone }}"
         version: "{{ repo_branch }}"
         force: yes
 
-    - name: Verificar se o script foi clonado
+    - name: Verificar se o script instala_postinstall.sh existe
       stat:
-        path: "{{ script_src }}"
+        path: "{{ script_src_path }}"
       register: postinstall_check
 
-    - name: Abortar se o instala_postinstall.sh não for encontrado
+    - name: Abortar se o script não for encontrado
       fail:
-        msg: "O arquivo instala_postinstall.sh não foi encontrado no repositório clonado: {{ script_src }}"
+        msg: "O arquivo {{ script_filename }} não foi encontrado no repositório clonado: {{ script_src_path }}"
       when: not postinstall_check.stat.exists
 
-    - name: Copiar o script instala_postinstall.sh para /tmp/
+    - name: Copiar o script para /tmp com permissão de execução
       copy:
         remote_src: true
-        src: "{{ script_src }}"
-        dest: "{{ script_dest }}"
+        src: "{{ script_src_path }}"
+        dest: "{{ script_dest_path }}"
         mode: '0755'
 
-    - name: Verificar se o script foi copiado corretamente para /tmp/
+    - name: Verificar se o script foi copiado corretamente
       stat:
-        path: "{{ script_dest }}"
+        path: "{{ script_dest_path }}"
       register: script_check
 
-    - name: Abortar se o script não foi copiado para /tmp/
+    - name: Abortar se o script não foi copiado corretamente
       fail:
-        msg: "O arquivo instala_postinstall.sh não foi copiado corretamente para /tmp/"
+        msg: "O script {{ script_filename }} não foi copiado corretamente para /tmp/"
       when: not script_check.stat.exists
 
-    - name: Garantir permissões de execução no script
+    - name: Garantir permissão de execução no script
       file:
-        path: "{{ script_dest }}"
+        path: "{{ script_dest_path }}"
         mode: '0755'
 
-    - name: Executar o script instala_postinstall.sh em /tmp
-      command: "{{ script_dest }}"
+    - name: Executar o script instala_postinstall.sh
+      command: "{{ script_dest_path }}"
       args:
         chdir: "/tmp"
