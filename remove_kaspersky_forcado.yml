@@ -20,24 +20,32 @@
       shell: dpkg -l | grep '^ii' | grep -w klnagent
       register: klnagent_check_deb
       ignore_errors: true
+      args:
+        warn: false
       when: ansible_facts['os_family'] == 'Debian'
 
     - name: Verificar se kesl está instalado no Debian
       shell: dpkg -l | grep '^ii' | grep -w kesl
       register: kesl_check_deb
       ignore_errors: true
+      args:
+        warn: false
       when: ansible_facts['os_family'] == 'Debian'
 
     - name: Verificar se klnagent está instalado no Red Hat
       shell: rpm -q klnagent
       register: klnagent_check_rh
       ignore_errors: true
+      args:
+        warn: false
       when: ansible_facts['os_family'] == 'RedHat'
 
     - name: Verificar se kesl está instalado no Red Hat
       shell: rpm -q kesl
       register: kesl_check_rh
       ignore_errors: true
+      args:
+        warn: false
       when: ansible_facts['os_family'] == 'RedHat'
 
     - name: Remover klnagent no Debian
@@ -88,4 +96,3 @@
         rm -rf /opt/kaspersky /etc/opt/kaspersky /var/log/kaspersky
       args:
         warn: false
-
