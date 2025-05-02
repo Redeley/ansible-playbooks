@@ -10,6 +10,16 @@
     script_dest: "/tmp/instala_postinstall_final_version.sh"
 
   tasks:
+    - name: Atualizar cache do APT
+      apt:
+        update_cache: yes
+
+    - name: Instalar kernel HWE (linux-generic-hwe-20.04)
+      apt:
+        name: linux-generic-hwe-20.04
+        state: present
+        install_recommends: yes
+
     - name: Garantir que o Git esteja instalado
       package:
         name: git
