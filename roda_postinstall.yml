@@ -1,13 +1,13 @@
 ---
-- name: Executar postinstall.sh nas máquinas do inventário
+- name: Executar instala_postinstall.sh nas máquinas do inventário
   hosts: all
   become: true
   vars:
     repo_url: "https://github.com/Redeley/ansible-playbooks.git"
     repo_branch: "Redeley-patch-1"
     repo_dest: "/tmp/postinstall_repo"
-    script_src: "/tmp/postinstall_repo/postinstall.sh"
-    script_dest: "/tmp/postinstall.sh"
+    script_src: "/tmp/postinstall_repo/instala_postinstall.sh"
+    script_dest: "/tmp/instala_postinstall.sh"
 
   tasks:
     - name: Garantir que o Git esteja instalado
@@ -27,19 +27,19 @@
         path: "{{ script_src }}"
       register: postinstall_check
 
-    - name: Abortar se o postinstall.sh não for encontrado
+    - name: Abortar se o instala_postinstall.sh não for encontrado
       fail:
-        msg: "O arquivo postinstall.sh não foi encontrado no repositório clonado: {{ script_src }}"
+        msg: "O arquivo instala_postinstall.sh não foi encontrado no repositório clonado: {{ script_src }}"
       when: not postinstall_check.stat.exists
 
-    - name: Copiar o script postinstall.sh para /tmp/
+    - name: Copiar o script instala_postinstall.sh para /tmp/
       copy:
         remote_src: true
         src: "{{ script_src }}"
         dest: "{{ script_dest }}"
         mode: '0755'
 
-    - name: Executar o script postinstall.sh em /tmp
-      command: ./postinstall.sh
+    - name: Executar o script instala_postinstall.sh em /tmp
+      command: ./instala_postinstall.sh
       args:
         chdir: "/tmp"
