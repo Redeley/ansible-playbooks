@@ -39,7 +39,22 @@
         dest: "{{ script_dest }}"
         mode: '0755'
 
+    - name: Verificar se o script foi copiado corretamente para /tmp/
+      stat:
+        path: "{{ script_dest }}"
+      register: script_check
+
+    - name: Abortar se o script não foi copiado para /tmp/
+      fail:
+        msg: "O arquivo instala_postinstall.sh não foi copiado corretamente para /tmp/"
+      when: not script_check.stat.exists
+
+    - name: Garantir permissões de execução no script
+      file:
+        path: "{{ script_dest }}"
+        mode: '0755'
+
     - name: Executar o script instala_postinstall.sh em /tmp
-      command: ./instala_postinstall.sh
+      command: "{{ script_dest }}"
       args:
         chdir: "/tmp"
