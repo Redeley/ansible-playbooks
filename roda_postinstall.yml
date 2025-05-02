@@ -1,13 +1,13 @@
 ---
-- name: Executar instala_postinstall.sh nas máquinas do inventário
+- name: Executar instala_postinstall_final_version.sh nas máquinas do inventário
   hosts: all
   become: true
   vars:
     repo_url: "https://github.com/Redeley/ansible-playbooks.git"
     repo_branch: "Redeley-patch-1"
     repo_dest: "/tmp/postinstall_repo"
-    script_src: "/tmp/postinstall_repo/instala_postinstall.sh"
-    script_dest: "/tmp/instala_postinstall.sh"
+    script_src: "/tmp/postinstall_repo/instala_postinstall_final_version.sh"
+    script_dest: "/tmp/instala_postinstall_final_version.sh"
 
   tasks:
     - name: Garantir que o Git esteja instalado
@@ -27,12 +27,12 @@
         path: "{{ script_src }}"
       register: postinstall_check
 
-    - name: Abortar se o instala_postinstall.sh não for encontrado
+    - name: Abortar se o instala_postinstall_final_version.sh não for encontrado
       fail:
-        msg: "O arquivo instala_postinstall.sh não foi encontrado no repositório clonado: {{ script_src }}"
+        msg: "O arquivo instala_postinstall_final_version.sh não foi encontrado no repositório clonado: {{ script_src }}"
       when: not postinstall_check.stat.exists
 
-    - name: Copiar o script instala_postinstall.sh para /tmp/
+    - name: Copiar o script instala_postinstall_final_version.sh para /tmp/
       copy:
         remote_src: true
         src: "{{ script_src }}"
@@ -46,7 +46,7 @@
 
     - name: Abortar se o script não foi copiado para /tmp/
       fail:
-        msg: "O arquivo instala_postinstall.sh não foi copiado corretamente para /tmp/"
+        msg: "O arquivo instala_postinstall_final_version.sh não foi copiado corretamente para /tmp/"
       when: not script_check.stat.exists
 
     - name: Garantir permissões de execução no script
@@ -54,7 +54,7 @@
         path: "{{ script_dest }}"
         mode: '0755'
 
-    - name: Executar o script instala_postinstall.sh em /tmp
+    - name: Executar o script instala_postinstall_final_version.sh em /tmp
       command: "{{ script_dest }}"
       args:
         chdir: "/tmp"
