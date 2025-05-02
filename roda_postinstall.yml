@@ -22,6 +22,16 @@
         version: "{{ repo_branch }}"
         force: yes
 
+    - name: Verificar se o script existe no repositório clonado
+      stat:
+        path: "{{ script_src }}"
+      register: postinstall_check
+
+    - name: Abortar se o postinstall.sh não for encontrado
+      fail:
+        msg: "O arquivo postinstall.sh não foi encontrado no repositório clonado: {{ script_src }}"
+      when: not postinstall_check.stat.exists
+
     - name: Copiar o script postinstall.sh para /tmp/
       copy:
         remote_src: true
