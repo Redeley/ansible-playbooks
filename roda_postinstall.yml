@@ -3,7 +3,8 @@
   hosts: all
   become: true
   vars:
-    repo_url: "https://github.com/Redeley/ansible-playbooks/tree/Redeley-patch-1"
+    repo_url: "https://github.com/Redeley/ansible-playbooks.git"
+    repo_branch: "Redeley-patch-1"
     repo_dest: "/tmp/postinstall_repo"
 
   tasks:
@@ -12,13 +13,14 @@
         name: git
         state: present
 
-    - name: Clonar o repositório com o script
+    - name: Clonar o repositório com o script da branch correta
       git:
         repo: "{{ repo_url }}"
         dest: "{{ repo_dest }}"
+        version: "{{ repo_branch }}"
         force: yes
 
-    - name: Copiar postinstall.sh para o destino
+    - name: Copiar postinstall.sh para o destino em /tmp
       copy:
         src: "{{ repo_dest }}/postinstall.sh"
         dest: "/tmp/postinstall.sh"
