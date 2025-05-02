@@ -17,7 +17,7 @@
       when: ansible_facts['os_family'] == 'Debian'
 
     - name: Verificar se klnagent está instalado no Debian
-      shell: dpkg -l | grep '^ii' | grep -w klnagent
+      shell: dpkg -l | grep '^ii' | grep -w klnagent || true
       register: klnagent_check_deb
       ignore_errors: true
       args:
@@ -25,7 +25,7 @@
       when: ansible_facts['os_family'] == 'Debian'
 
     - name: Verificar se kesl está instalado no Debian
-      shell: dpkg -l | grep '^ii' | grep -w kesl
+      shell: dpkg -l | grep '^ii' | grep -w kesl || true
       register: kesl_check_deb
       ignore_errors: true
       args:
@@ -33,7 +33,7 @@
       when: ansible_facts['os_family'] == 'Debian'
 
     - name: Verificar se klnagent está instalado no Red Hat
-      shell: rpm -q klnagent
+      shell: rpm -q klnagent || true
       register: klnagent_check_rh
       ignore_errors: true
       args:
@@ -41,7 +41,7 @@
       when: ansible_facts['os_family'] == 'RedHat'
 
     - name: Verificar se kesl está instalado no Red Hat
-      shell: rpm -q kesl
+      shell: rpm -q kesl || true
       register: kesl_check_rh
       ignore_errors: true
       args:
