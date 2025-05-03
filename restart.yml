@@ -1,0 +1,9 @@
+---
+- name: Rebootar máquinas Linux
+  hosts: all
+  become: yes
+  tasks:
+    - name: Rebootar o sistema imediatamente
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+        test_command: whoami
