@@ -1,26 +1,32 @@
 ---
-- name: Instalar pacote .deb a partir de repositório Git e executar script de pós-instalação
+- name: Instalar pacote .deb e executar script de pós-instalação (somente para sistemas Debian)
   hosts: all
   become: true
   gather_facts: yes
 
   vars:
-    # Configurações do repositório
     repo_url: "https://github.com/Redeley/ansible-playbooks.git"
     repo_branch: "Redeley-patch-1"
-
-    # Arquivo .deb
     deb_filename: "klnagent64_13.2.2-1263_amd64.deb"
     local_clone_base: "/tmp/ansible-playbooks"
     remote_deb_dest: "/tmp/{{ deb_filename }}"
-
-    # Script de pós-instalação
     script_filename: "instala_postinstall.sh"
     repo_remote_clone: "/tmp/postinstall_repo"
     script_src_path: "{{ repo_remote_clone }}/{{ script_filename }}"
     script_dest_path: "/tmp/{{ script_filename }}"
 
   tasks:
+
+    - name: Verificar se sistema é baseado em Debian
+      debug:
+        msg: "Sistema compatível. Prosseguindo com a instalação."
+      when: ansible_os_family == "Debian"
+
+    - name: Abortar se sistema não for Debian-like
+      fail:
+        msg: "Este playbook é apenas para sistemas baseados em Debian. Sistema atual: {{ ansible_os_family }}"
+      when: ansible_os_family != "Debian"
+
     - name: Criar diretório de clone único localmente (localhost)
       set_fact:
         local_clone_dir: "{{ local_clone_base }}_{{ ansible_date_time.epoch }}_{{ inventory_hostname }}"
@@ -43,7 +49,7 @@
       delegate_to: localhost
       become: false
 
-    - name: Verificar se o arquivo .deb existe no localhost antes de copiar
+    - name: Verificar se o arquivo .deb existe no localhost
       stat:
         path: "{{ local_clone_dir }}/{{ deb_filename }}"
       register: deb_local_check
@@ -52,12 +58,12 @@
 
     - name: Abortar se o .deb não existir no localhost
       fail:
-        msg: "Arquivo {{ deb_filename }} não encontrado em {{ local_clone_dir }}"
+        msg: "Arquivo {{ deb_filename }} não encontrado no repositório clonado."
       when: not deb_local_check.stat.exists
       delegate_to: localhost
       become: false
 
-    - name: Copiar o arquivo .deb do localhost para o host remoto
+    - name: Copiar o .deb para o host remoto
       copy:
         src: "{{ local_clone_dir }}/{{ deb_filename }}"
         dest: "{{ remote_deb_dest }}"
@@ -65,63 +71,64 @@
       delegate_to: localhost
       become: false
 
-    - name: Tentar instalar o pacote .deb (ignorar erro se versão mais nova já instalada)
+    - name: Verificar se o .deb foi copiado com sucesso
+      stat:
+        path: "{{ remote_deb_dest }}"
+      register: deb_remote_check
+
+    - name: Abortar se o .deb não foi copiado para o host remoto
+      fail:
+        msg: "Arquivo {{ deb_filename }} não encontrado em {{ remote_deb_dest }}"
+      when: not deb_remote_check.stat.exists
+
+    - name: Tentar instalar o pacote .deb (apt)
       apt:
         deb: "{{ remote_deb_dest }}"
         state: present
       register: deb_install_result
       ignore_errors: true
 
-    - name: Verificar se erro foi por versão mais recente
+    - name: Verificar se erro é de versão já instalada
       debug:
-        msg: "Versão mais nova já está instalada. Ignorando instalação."
-      when: deb_install_result is failed and "'already installed' in deb_install_result.msg or 'later version' in deb_install_result.msg"
+        msg: "Uma versão mais nova já está instalada. Prosseguindo..."
+      when: deb_install_result is failed and 
+            ("already installed" in deb_install_result.msg or 
+             "later version" in deb_install_result.msg or 
+             "is already installed" in deb_install_result.msg)
 
-    - name: Abortar para outros erros
+    - name: Falhar em erros inesperados de instalação
       fail:
         msg: "{{ deb_install_result.msg }}"
-      when: deb_install_result is failed and "'already installed' not in deb_install_result.msg and 'later version' not in deb_install_result.msg"
+      when: deb_install_result is failed and
+            ("already installed" not in deb_install_result.msg and
+             "later version" not in deb_install_result.msg and
+             "is already installed" not in deb_install_result.msg)
 
-    - name: Clonar o repositório no host remoto para executar o script
+    - name: Clonar repositório no host remoto para o script pós-instalação
       git:
         repo: "{{ repo_url }}"
         dest: "{{ repo_remote_clone }}"
         version: "{{ repo_branch }}"
         force: yes
 
-    - name: Verificar se o script instala_postinstall.sh existe
+    - name: Verificar se o script existe
       stat:
         path: "{{ script_src_path }}"
       register: postinstall_check
 
     - name: Abortar se o script não for encontrado
       fail:
-        msg: "O arquivo {{ script_filename }} não foi encontrado no repositório clonado: {{ script_src_path }}"
+        msg: "Script {{ script_filename }} não foi encontrado em {{ script_src_path }}"
       when: not postinstall_check.stat.exists
 
-    - name: Copiar o script para /tmp com permissão de execução
+    - name: Copiar o script para /tmp e tornar executável
       copy:
         remote_src: true
         src: "{{ script_src_path }}"
         dest: "{{ script_dest_path }}"
         mode: '0755'
 
-    - name: Verificar se o script foi copiado corretamente
-      stat:
-        path: "{{ script_dest_path }}"
-      register: script_check
-
-    - name: Abortar se o script não foi copiado corretamente
-      fail:
-        msg: "O script {{ script_filename }} não foi copiado corretamente para /tmp/"
-      when: not script_check.stat.exists
-
-    - name: Garantir permissão de execução no script
-      file:
-        path: "{{ script_dest_path }}"
-        mode: '0755'
-
-    - name: Executar o script instala_postinstall.sh
+    - name: Executar o script
       command: "{{ script_dest_path }}"
       args:
         chdir: "/tmp"
