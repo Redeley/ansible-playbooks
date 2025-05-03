@@ -1,0 +1,114 @@
+---
+- name: Instalar pacote .deb e executar pós-instalação (somente distros Debian-based)
+  hosts: all
+  become: true
+  gather_facts: yes
+
+  vars:
+    repo_url: "https://github.com/Redeley/ansible-playbooks.git"
+    repo_branch: "Redeley-patch-1"
+    deb_filename: "klnagent64_13.2.2-1263_amd64.deb"
+    local_clone_base: "/tmp/ansible-playbooks"
+    remote_deb_dest: "/tmp/{{ deb_filename }}"
+    script_filename: "instala_postinstall.sh"
+    repo_remote_clone: "/tmp/postinstall_repo"
+    script_src_path: "{{ repo_remote_clone }}/{{ script_filename }}"
+    script_dest_path: "/tmp/{{ script_filename }}"
+
+  tasks:
+    - name: Verificar se o sistema é Debian-based
+      debug:
+        msg: "Distribuição compatível: {{ ansible_distribution }}"
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Abortar se o sistema não for Debian-based
+      fail:
+        msg: "Este playbook só suporta distribuições Debian-based (Ubuntu, Debian)"
+      when: ansible_facts['os_family'] != "Debian"
+
+    - name: Criar diretório de clone único localmente (localhost)
+      set_fact:
+        local_clone_dir: "{{ local_clone_base }}_{{ ansible_date_time.epoch }}_{{ inventory_hostname }}"
+      delegate_to: localhost
+      become: false
+
+    - name: Garantir que o diretório local não exista antes de clonar
+      file:
+        path: "{{ local_clone_dir }}"
+        state: absent
+      delegate_to: localhost
+      become: false
+
+    - name: Clonar repositório contendo o .deb no localhost
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ local_clone_dir }}"
+        version: "{{ repo_branch }}"
+        force: yes
+      delegate_to: localhost
+      become: false
+
+    - name: Copiar o arquivo .deb do localhost para o host remoto
+      copy:
+        src: "{{ local_clone_dir }}/{{ deb_filename }}"
+        dest: "{{ remote_deb_dest }}"
+        mode: '0644'
+      delegate_to: localhost
+      become: false
+
+    - name: Verificar se o .deb foi copiado corretamente para o host remoto
+      stat:
+        path: "{{ remote_deb_dest }}"
+      register: deb_check
+
+    - name: Abortar se o .deb não foi copiado corretamente
+      fail:
+        msg: "Arquivo .deb não encontrado em {{ remote_deb_dest }}"
+      when: not deb_check.stat.exists
+
+    - name: Obter versão do pacote klnagent64, se instalado
+      shell: dpkg-query -W -f='${Version}' klnagent64 || echo "not_installed"
+      register: klnagent64_version
+      changed_when: false
+      failed_when: false
+
+    - name: Instalar o pacote .deb somente se não instalado ou versão diferente
+      apt:
+        deb: "{{ remote_deb_dest }}"
+        state: present
+      when:
+        - "'not_installed' in klnagent64_version.stdout or '13.2.2-1263' not in klnagent64_version.stdout"
+
+    - name: Clonar repositório no host remoto para executar o script
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_remote_clone }}"
+        version: "{{ repo_branch }}"
+        force: yes
+
+    - name: Verificar se o script existe no repositório clonado
+      stat:
+        path: "{{ script_src_path }}"
+      register: postinstall_check
+
+    - name: Abortar se o script não for encontrado
+      fail:
+        msg: "O arquivo {{ script_filename }} não foi encontrado em {{ script_src_path }}"
+      when: not postinstall_check.stat.exists
+
+    - name: Copiar o script para /tmp com permissão de execução
+      copy:
+        remote_src: true
+        src: "{{ script_src_path }}"
+        dest: "{{ script_dest_path }}"
+        mode: '0755'
+
+    - name: Garantir permissão de execução no script
+      file:
+        path: "{{ script_dest_path }}"
+        mode: '0755'
+
+    - name: Executar o script de pós-instalação
+      command: "{{ script_dest_path }}"
+      args:
+        chdir: "/tmp"
