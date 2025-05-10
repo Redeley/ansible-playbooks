@@ -1,0 +1,25 @@
+---
+- name: Instalar Google Chrome em máquina Windows
+  hosts: windows
+  gather_facts: no
+  tasks:
+
+    - name: Baixar o instalador do Chrome
+      win_get_url:
+        url: "https://dl.google.com/chrome/install/latest/chrome_installer.exe"
+        dest: "C:\\Windows\\Temp\\chrome_installer.exe"
+
+    - name: Instalar o Google Chrome
+      win_package:
+        path: "C:\\Windows\\Temp\\chrome_installer.exe"
+        product_name: "Google Chrome"
+        arguments: "/silent /install"
+        state: present
+
+    - name: Verificar se o Chrome foi instalado
+      win_shell: 'Get-ItemProperty "HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*" | Where-Object { $_.DisplayName -like "*Chrome*" }'
+      register: chrome_installed
+
+    - name: Mostrar resultado da instalação
+      debug:
+        var: chrome_installed.stdout

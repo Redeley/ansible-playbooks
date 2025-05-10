@@ -1,0 +1,9 @@
+---
+- name: Executar klmover em máquina Ubuntu
+  hosts: all
+  become: yes
+  tasks:
+    - name: Executar comando klmover com endereço específico
+      ansible.builtin.command: ./klmover -address 172.40.0.3
+      args:
+        chdir: /opt/kaspersky/klnagent64/bin/

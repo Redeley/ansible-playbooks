@@ -1,0 +1,37 @@
+---
+- name: Instalar htop no Oracle Linux 8.10 com EPEL correto
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Remover EPEL errado (se estiver instalado)
+      ansible.builtin.shell: "dnf remove -y epel-release || true"
+      ignore_errors: yes
+
+    - name: Importar chave GPG do EPEL 8
+      ansible.builtin.rpm_key:
+        state: present
+        key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8
+
+    - name: Instalar epel-release do EPEL 8
+      ansible.builtin.dnf:
+        name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
+        state: present
+
+    - name: Atualizar cache dos repositórios
+      ansible.builtin.dnf:
+        update_cache: yes
+
+    - name: Instalar htop compatível
+      ansible.builtin.dnf:
+        name: htop
+        state: present
+
+    - name: Verificar se htop está disponível
+      ansible.builtin.command: which htop
+      register: htop_result
+      changed_when: false
+
+    - name: Mostrar caminho do htop
+      ansible.builtin.debug:
+        msg: "htop instalado em: {{ htop_result.stdout }}"

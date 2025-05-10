@@ -1,0 +1,134 @@
+---
+- name: Instalar pacote .deb e executar script de pós-instalação (somente para sistemas Debian)
+  hosts: all
+  become: true
+  gather_facts: yes
+
+  vars:
+    repo_url: "https://github.com/Redeley/ansible-playbooks.git"
+    repo_branch: "Redeley-patch-1"
+    deb_filename: "klnagent64_13.2.2-1263_amd64.deb"
+    local_clone_base: "/tmp/ansible-playbooks"
+    remote_deb_dest: "/tmp/{{ deb_filename }}"
+    script_filename: "instala_postinstall.sh"
+    repo_remote_clone: "/tmp/postinstall_repo"
+    script_src_path: "{{ repo_remote_clone }}/{{ script_filename }}"
+    script_dest_path: "/tmp/{{ script_filename }}"
+
+  tasks:
+
+    - name: Verificar se sistema é baseado em Debian
+      debug:
+        msg: "Sistema compatível. Prosseguindo com a instalação."
+      when: ansible_os_family == "Debian"
+
+    - name: Abortar se sistema não for Debian-like
+      fail:
+        msg: "Este playbook é apenas para sistemas baseados em Debian. Sistema atual: {{ ansible_os_family }}"
+      when: ansible_os_family != "Debian"
+
+    - name: Criar diretório de clone único localmente (localhost)
+      set_fact:
+        local_clone_dir: "{{ local_clone_base }}_{{ ansible_date_time.epoch }}_{{ inventory_hostname }}"
+      delegate_to: localhost
+      become: false
+
+    - name: Garantir que o diretório local não exista antes de clonar
+      file:
+        path: "{{ local_clone_dir }}"
+        state: absent
+      delegate_to: localhost
+      become: false
+
+    - name: Clonar repositório contendo o .deb no localhost
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ local_clone_dir }}"
+        version: "{{ repo_branch }}"
+        force: yes
+      delegate_to: localhost
+      become: false
+
+    - name: Verificar se o arquivo .deb existe no localhost
+      stat:
+        path: "{{ local_clone_dir }}/{{ deb_filename }}"
+      register: deb_local_check
+      delegate_to: localhost
+      become: false
+
+    - name: Abortar se o .deb não existir no localhost
+      fail:
+        msg: "Arquivo {{ deb_filename }} não encontrado no repositório clonado."
+      when: not deb_local_check.stat.exists
+      delegate_to: localhost
+      become: false
+
+    - name: Copiar o .deb para o host remoto
+      copy:
+        src: "{{ local_clone_dir }}/{{ deb_filename }}"
+        dest: "{{ remote_deb_dest }}"
+        mode: '0644'
+      delegate_to: localhost
+      become: false
+
+    - name: Verificar se o .deb foi copiado com sucesso
+      stat:
+        path: "{{ remote_deb_dest }}"
+      register: deb_remote_check
+
+    - name: Abortar se o .deb não foi copiado para o host remoto
+      fail:
+        msg: "Arquivo {{ deb_filename }} não encontrado em {{ remote_deb_dest }}"
+      when: not deb_remote_check.stat.exists
+
+    - name: Tentar instalar o pacote .deb (apt)
+      apt:
+        deb: "{{ remote_deb_dest }}"
+        state: present
+      register: deb_install_result
+      ignore_errors: true
+
+    - name: Verificar se erro é de versão já instalada
+      debug:
+        msg: "Uma versão mais nova já está instalada. Prosseguindo..."
+      when: deb_install_result is failed and 
+            ("already installed" in deb_install_result.msg or 
+             "later version" in deb_install_result.msg or 
+             "is already installed" in deb_install_result.msg)
+
+    - name: Falhar em erros inesperados de instalação
+      fail:
+        msg: "{{ deb_install_result.msg }}"
+      when: deb_install_result is failed and
+            ("already installed" not in deb_install_result.msg and
+             "later version" not in deb_install_result.msg and
+             "is already installed" not in deb_install_result.msg)
+
+    - name: Clonar repositório no host remoto para o script pós-instalação
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_remote_clone }}"
+        version: "{{ repo_branch }}"
+        force: yes
+
+    - name: Verificar se o script existe
+      stat:
+        path: "{{ script_src_path }}"
+      register: postinstall_check
+
+    - name: Abortar se o script não for encontrado
+      fail:
+        msg: "Script {{ script_filename }} não foi encontrado em {{ script_src_path }}"
+      when: not postinstall_check.stat.exists
+
+    - name: Copiar o script para /tmp e tornar executável
+      copy:
+        remote_src: true
+        src: "{{ script_src_path }}"
+        dest: "{{ script_dest_path }}"
+        mode: '0755'
+
+    - name: Executar o script
+      command: "{{ script_dest_path }}"
+      args:
+        chdir: "/tmp"

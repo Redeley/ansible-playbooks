@@ -1,0 +1,25 @@
+---
+- name: Remover Kaspersky do sistema
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Remover pacotes Kaspersky
+      apt:
+        name:
+          - klnagent64
+          - kesl
+        state: absent
+        purge: yes
+        force: yes
+        autoremove: yes
+        update_cache: yes
+
+    - name: Remover diretórios relacionados ao Kaspersky
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /opt/kaspersky
+        - /etc/opt/kaspersky
+        - /var/log/kaspersky

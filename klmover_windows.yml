@@ -1,0 +1,41 @@
+---
+- name: Atualizar apontamento do Kaspersky para novo manager
+  hosts: all
+  gather_facts: no
+  vars:
+    ip_do_servidor_antivirus: "172.40.0.3"
+  tasks:
+    - name: Verificar se o diretório do Kaspersky NetworkAgent existe
+      win_stat:
+        path: "C:\\Program Files (x86)\\Kaspersky Lab\\NetworkAgent"
+      register: kaspersky_dir
+
+    - name: Verificar se o klmover.exe existe
+      win_stat:
+        path: "C:\\Program Files (x86)\\Kaspersky Lab\\NetworkAgent\\klmover.exe"
+      register: klmover_file
+      when: kaspersky_dir.stat.exists
+
+    - name: Executar klmover para atualizar o apontamento
+      win_command: '"C:\\Program Files (x86)\\Kaspersky Lab\\NetworkAgent\\klmover.exe" -address 172.40.0.3'
+      when:
+        - kaspersky_dir.stat.exists
+        - klmover_file.stat.exists
+      register: klmover_output
+
+    - name: Exibir saída do comando klmover
+      debug:
+        var: klmover_output.stdout
+      when: klmover_output is defined
+
+    - name: Avisar que o klmover.exe não foi encontrado
+      debug:
+        msg: "klmover.exe não foi encontrado no caminho esperado."
+      when:
+        - kaspersky_dir.stat.exists
+        - not klmover_file.stat.exists
+
+    - name: Informar que o diretório Kaspersky NetworkAgent não foi encontrado
+      debug:
+        msg: "O diretório Kaspersky NetworkAgent não foi encontrado na máquina."
+      when: not kaspersky_dir.stat.exists

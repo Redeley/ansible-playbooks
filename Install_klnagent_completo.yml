@@ -1,0 +1,82 @@
+---
+- name: Instalar agente KLN a partir de repositório Git e configurar
+  hosts: all
+  become: yes
+  vars:
+    repositorio_git: "https://github.com/Redeley/ansible-playbooks.git"
+    destino_clone: "/opt/ansible-playbooks"
+    pacote_deb: "klnagent64_13.2.2-1263_amd64.deb"
+    ip_servidor: "172.40.0.3"
+    porta_admin: "14000"
+    porta_sec: "13000"
+    numero_grupo: "2"
+ 
+  tasks:
+    - name: Instalar o Git (caso não tenha)
+      apt:
+        name: git
+        state: present
+        update_cache: yes
+ 
+    - name: Instalar o pacote expect (necessário para simular entrada)
+      apt:
+        name: expect
+        state: present
+        update_cache: yes
+ 
+    - name: Criar diretório de destino
+      file:
+        path: "{{ destino_clone }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+ 
+    - name: Clonar repositório do GitHub
+      git:
+        repo: "{{ repositorio_git }}"
+        dest: "{{ destino_clone }}"
+        version: main
+        force: yes
+ 
+    - name: Copiar arquivo .deb para o destino
+      copy:
+        src: ./klnagent64_13.2.2-1263_amd64.deb
+        dest: /tmp/klnagent64_13.2.2-1263_amd64.deb
+ 
+    - name: Instalar pacote .deb copiado
+      apt:
+        deb: /tmp/klnagent64_13.2.2-1263_amd64.deb
+        state: present
+ 
+    - name: Executar script postinstall.pl com entradas simuladas
+      shell: |
+        /opt/kaspersky/klnagent64/lib/bin/setup/postinstall.pl <<EOF
+        y
+        {{ ip_servidor }}
+        {{ porta_admin }}
+        {{ porta_sec }}
+        y
+        {{ numero_grupo }}
+        EOF
+      args:
+        executable: /bin/bash
+ 
+    - name: Executar klmover com o endereço do servidor
+      shell: ./klmover -address {{ ip_servidor }}
+      args:
+        chdir: /opt/kaspersky/klnagent64/bin
+ 
+    - name: Reiniciar serviço klnagent64
+      systemd:
+        name: klnagent64
+        state: restarted
+        enabled: yes
+ 
+    - name: Verificar status do serviço klnagent64
+      shell: systemctl status klnagent64 --no-pager
+      register: klnagent_status
+ 
+    - name: Mostrar status do serviço
+      debug:
+        var: klnagent_status.stdout_lines

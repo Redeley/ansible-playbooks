@@ -1,0 +1,35 @@
+---
+- name: Instalar agente KLN a partir de repositório Git
+  hosts: all
+  become: yes
+  vars:
+    repositorio_git: "https://github.com/Redeley/ansible-playbooks.git"
+    destino_clone: "/opt/ansible-playbooks"
+    pacote_deb: "klnagent64_13.2.2-1263_amd64.deb"
+
+  tasks:
+    - name: Instalar o Git (caso não tenha)
+      apt:
+        name: git
+        state: present
+        update_cache: yes
+
+    - name: Criar diretório de destino
+      file:
+        path: "{{ destino_clone }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Clonar repositório do GitHub
+      git:
+        repo: "{{ repositorio_git }}"
+        dest: "{{ destino_clone }}"
+        version: main
+        force: yes
+
+    - name: Instalar o pacote .deb com apt
+      apt:
+        deb: "{{ destino_clone }}/{{ pacote_deb }}"
+        state: present

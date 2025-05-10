@@ -1,0 +1,67 @@
+---
+- name: Remover Kaspersky com verificações e correções
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Detectar distribuição do sistema
+      ansible.builtin.setup:
+        gather_subset: min
+      register: system_facts
+
+    - name: Corrigir pacotes quebrados (dpkg)
+      ansible.builtin.command: dpkg --configure -a
+      when: "'Debian' in system_facts.ansible_facts.ansible_distribution or 'Ubuntu' in system_facts.ansible_facts.ansible_distribution"
+
+    - name: Corrigir dependências quebradas
+      ansible.builtin.apt:
+        upgrade: dist
+        update_cache: yes
+        force_apt_get: yes
+      when: "'Debian' in system_facts.ansible_facts.ansible_distribution or 'Ubuntu' in system_facts.ansible_facts.ansible_distribution"
+
+    - name: Aceitar mudança de Label de repositório PHP (ppa:ondrej)
+      ansible.builtin.command: apt-get update --allow-releaseinfo-change
+      ignore_errors: yes
+      when: "'Debian' in system_facts.ansible_facts.ansible_distribution or 'Ubuntu' in system_facts.ansible_facts.ansible_distribution"
+
+    - name: Remover repositório inválido dalibo (se existir)
+      ansible.builtin.file:
+        path: /etc/apt/sources.list.d/dalibo.list
+        state: absent
+
+    - name: Atualizar cache APT com fallback
+      ansible.builtin.apt:
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600
+      ignore_errors: yes
+      when: "'Debian' in system_facts.ansible_facts.ansible_distribution or 'Ubuntu' in system_facts.ansible_facts.ansible_distribution"
+
+    - name: Remover pacotes Kaspersky (kesl e klnagent64)
+      ansible.builtin.package:
+        name:
+          - kesl
+          - klnagent64
+        state: absent
+        autoremove: yes
+
+    - name: Remover diretório /opt/kaspersky
+      ansible.builtin.file:
+        path: /opt/kaspersky
+        state: absent
+
+    - name: Remover diretório /var/opt/kaspersky
+      ansible.builtin.file:
+        path: /var/opt/kaspersky
+        state: absent
+
+    - name: Remover diretório /etc/opt/kaspersky
+      ansible.builtin.file:
+        path: /etc/opt/kaspersky
+        state: absent
+
+    - name: Remover diretório /var/log/kaspersky
+      ansible.builtin.file:
+        path: /var/log/kaspersky
+        state: absent

@@ -1,0 +1,70 @@
+---
+- name: Executar instala_postinstall.sh nas máquinas do inventário
+  hosts: all
+  become: true
+  vars:
+    repo_url: "https://github.com/Redeley/ansible-playbooks.git"
+    repo_branch: "Redeley-patch-1"
+    repo_dest: "/tmp/postinstall_repo"
+    script_src: "/tmp/postinstall_repo/instala_postinstall.sh"
+    script_dest: "/tmp/instala_postinstall.sh"
+
+  tasks:
+    - name: Atualizar cache do APT
+      apt:
+        update_cache: yes
+
+    - name: Instalar kernel HWE (linux-generic-hwe-20.04)
+      apt:
+        name: linux-generic-hwe-20.04
+        state: present
+        install_recommends: yes
+
+    - name: Garantir que o Git esteja instalado
+      package:
+        name: git
+        state: present
+
+    - name: Clonar o repositório com o script da branch correta
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+        version: "{{ repo_branch }}"
+        force: yes
+
+    - name: Verificar se o script existe no repositório clonado
+      stat:
+        path: "{{ script_src }}"
+      register: postinstall_check
+
+    - name: Abortar se o instala_postinstall.sh não for encontrado
+      fail:
+        msg: "O arquivo instala_postinstall.sh não foi encontrado no repositório clonado: {{ script_src }}"
+      when: not postinstall_check.stat.exists
+
+    - name: Copiar o script instala_postinstall.sh para /tmp/
+      copy:
+        remote_src: true
+        src: "{{ script_src }}"
+        dest: "{{ script_dest }}"
+        mode: '0755'
+
+    - name: Verificar se o script foi copiado corretamente para /tmp/
+      stat:
+        path: "{{ script_dest }}"
+      register: script_check
+
+    - name: Abortar se o script não foi copiado para /tmp/
+      fail:
+        msg: "O arquivo instala_postinstall.sh não foi copiado corretamente para /tmp/"
+      when: not script_check.stat.exists
+
+    - name: Garantir permissões de execução no script
+      file:
+        path: "{{ script_dest }}"
+        mode: '0755'
+
+    - name: Executar o script instala_postinstall_final_version.sh em /tmp
+      command: "{{ script_dest }}"
+      args:
+        chdir: "/tmp"
